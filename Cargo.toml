@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+
+members = [
+  "testsi",
+  "testsi-macros",
+
+  "test-case",
+]
+
+[workspace.package]
+version = "0.1.0"
+license = "Apache-2.0"
+edition = "2021"
+
+[workspace.dependencies]
+testsi-macros = { version = "0.1", path = "testsi-macros" }
+
+libtest-mimic = "0.6"
+inventory = "0.3"

@@ -1,0 +1,24 @@
+[package]
+name = "testsi"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+
+[features]
+default = ["test_runner", "bench"]
+test_runner = ["dep:libtest-mimic", "dep:testsi-macros", "dep:inventory"]
+
+bench = []
+
+
+[dependencies]
+testsi-macros = { workspace = true, optional = true }
+
+alloy-sol-types = "0.4"
+alloy-primitives = "0.4"
+
+clap = { version = "4.4", feature = ["derive"] }
+inventory = { workspace = true, optional = true }
+libtest-mimic = { workspace = true, optional = true }
+thiserror = "1.0"
