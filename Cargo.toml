@@ -3,9 +3,9 @@ resolver = "2"
 
 members = [
   "testsi",
-  "testsi-macros",
+  # "testsi-macros",
 
-  "test-case",
+  "examples/echo-test",
 ]
 
 [workspace.package]
@@ -14,7 +14,6 @@ license = "Apache-2.0"
 edition = "2021"
 
 [workspace.dependencies]
-testsi-macros = { version = "0.1", path = "testsi-macros" }
+# testsi-macros = { version = "0.1", path = "testsi-macros" }
+testsi = { version = "0.1", path = "testsi" }
 
-libtest-mimic = "0.6"
-inventory = "0.3"

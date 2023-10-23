@@ -119,6 +119,8 @@ impl Machine {
                 notice_file_pattern,
                 report_file_pattern
             ))
+            .stderr(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
             .status()
             .expect("failed to execute cartesi-machine process").success();
 
@@ -196,22 +198,26 @@ fn spawn_remote_machine(config: &MachineConfig, image: &str) -> Child {
         .spawn()
         .expect("couldn't spawn remote machine");
 
+    let output = Command::new(&config.cartesi_machine)
+        .arg(format!("--load={}", image))
+        .arg(format!(
+            "--remote-address=localhost:{}",
+            config.remote_machine_port
+        ))
+        .arg(format!(
+            "--checkin-address=localhost:{}",
+            REMOTE_MACHINE_CHECKIN_PORT
+        ))
+        .arg("--no-remote-destroy")
+        .stderr(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .output()
+        .expect("failed to execute cartesi-machine process (load)");
+
     assert!(
-        Command::new(&config.cartesi_machine)
-            .arg(format!("--load={}", image))
-            .arg(format!(
-                "--remote-address=localhost:{}",
-                config.remote_machine_port
-            ))
-            .arg(format!(
-                "--checkin-address=localhost:{}",
-                REMOTE_MACHINE_CHECKIN_PORT
-            ))
-            .arg("--no-remote-destroy")
-            .status()
-            .expect("failed to execute cartesi-machine process (load)")
-            .success(),
-        "cartesi-machine process failed (load)"
+        output.status.success(),
+        "cartesi-machine process failed (load): {:?}",
+        output
     );
 
     handle
