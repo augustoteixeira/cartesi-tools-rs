@@ -1,0 +1,24 @@
+[package]
+name = "echo-rs"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[lib]
+name = "echo_lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "echo-dapp"
+path = "src/main.rs"
+test = false
+bench = false
+required-features = ["cmt"]
+
+[features]
+default = []
+cmt = ["trolley/cmt"]
+
+[dependencies]
+trolley = { workspace = true }
+types = { workspace = true }

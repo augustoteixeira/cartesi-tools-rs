@@ -4,32 +4,18 @@ use sha2::{Digest, Sha512};
 use std::path::PathBuf;
 use xz2::read::XzDecoder;
 
-const LIBCMT_URL: &str = "https://github.com/cartesi/machine-emulator-tools/releases/download/v0.15.0/libcmt-v0.15.0-dev.deb";
-const LIBCMT_CHECKSUM: [u8; 64] = hex!("b8578f27279ebeecd10d68d037cac403e77a10553d54211d4862cebdb202520fec81483adf969f01bb4abe5cca7ecb6b980e29e881cc002e57b26e3a5a48ad76");
+const LIBCMT_URL: &str = "https://github.com/cartesi/machine-emulator-tools/releases/download/v0.16.1/libcmt-dev-riscv64-cross-v0.16.1.deb";
+const LIBCMT_CHECKSUM: [u8; 64] = hex!("4eafbc8987e1f34d2ec40eb6c90f75ea269041812993227598c88086258189aeef3bdb42790a7504d4f0204b75764aa507002ca5c1433566382f5e531ac8901a");
 
 fn main() {
-    download_libcmt_a();
-
-    let out_path = PathBuf::from(std::env::var("OUT_DIR").unwrap());
-
-    let libcmt_dir_path = PathBuf::from("./machine-emulator-tools/sys-utils/libcmt/src/")
-        .canonicalize()
-        .expect("cannot canonicalize path");
-
-    let libcmt_bindings = bindgen::Builder::default()
-        .header(libcmt_dir_path.join("rollup.h").to_str().unwrap())
-        .generate()
-        .expect("Unable to generate libcmt bindings");
-
-    libcmt_bindings
-        .write_to_file(out_path.join("bindings.rs"))
-        .expect("Couldn't write libcmt bindings");
-
+    download_libcmt();
     println!("cargo:rerun-if-changed=build.rs");
 }
 
-fn download_libcmt_a() {
+fn download_libcmt() {
     let out_path = PathBuf::from(std::env::var("OUT_DIR").unwrap());
+    let lib_path = out_path.join("usr/riscv64-linux-gnu/lib/");
+    let headers_path = out_path.join("usr/riscv64-linux-gnu/include/libcmt/");
 
     // get
     let data = reqwest::blocking::get(LIBCMT_URL)
@@ -57,27 +43,53 @@ fn download_libcmt_a() {
     // extract
     let xz = XzDecoder::new(entry);
     let mut inner_archive = tar::Archive::new(xz);
-    let mut found = false;
-    for file in inner_archive.entries().unwrap() {
-        let mut libcmt = file.expect("error opening file");
-        let libcmt_path = libcmt.header().path().expect("could not get archive path");
-        let libcmt_expected_path = "./usr/riscv64-linux-gnu/lib/libcmt.a";
+    inner_archive
+        .unpack(&out_path)
+        .expect("failed to unpack libcmt");
 
-        if libcmt_path.to_str().expect("invalid utf8 string") == libcmt_expected_path {
-            libcmt
-                .unpack(out_path.join("libcmt.a"))
-                .expect("could not copy libcmt.a");
+    //     let mut found_lib = false;
+    //     let mut found_headers = false;
+    //     for file in inner_archive.entries().unwrap() {
+    //         let mut f = file.expect("error opening file");
+    //         let path = f.header().path().expect("could not get archive path");
 
-            found = true;
-            break;
-        }
-    }
+    //         let libcmt_expected_path = "./usr/riscv64-linux-gnu/lib/libcmt.a";
+    //         let header_expected_path = "./usr/riscv64-linux-gnu/include/";
 
-    if !found {
-        panic!("could not find libcmt.a");
-    }
+    //         if path.to_str().expect("invalid utf8 string") == libcmt_expected_path {
+    //             f.unpack(out_path.join("libcmt.a"))
+    //                 .expect("could not copy libcmt.a");
+
+    //             found_lib = true;
+    //         } else if path.to_str().expect("invalid utf8 string") == header_expected_path {
+    //             f.unpack(headers_path.clone())
+    //                 .expect("could not copy headers");
+
+    //             found_headers = true;
+    //         }
+    //     }
+
+    //     if !found_lib {
+    //         panic!("could not find libcmt.a");
+    //     }
+    //     if !found_headers {
+    //         panic!("could not find headers");
+    //     }
 
     // compiler flags
-    println!("cargo:rustc-link-search={}", out_path.to_str().unwrap());
+    println!("cargo:rustc-link-search={}", lib_path.to_str().unwrap());
     println!("cargo:rustc-link-lib=static=cmt");
+
+    // let libcmt_dir_path = PathBuf::from("./machine-emulator-tools/sys-utils/libcmt/src/")
+    //     .canonicalize()
+    //     .expect("cannot canonicalize path");
+
+    let libcmt_bindings = bindgen::Builder::default()
+        .header(headers_path.join("rollup.h").to_str().unwrap())
+        .generate()
+        .expect("Unable to generate libcmt bindings");
+
+    libcmt_bindings
+        .write_to_file(out_path.join("bindings.rs"))
+        .expect("Couldn't write libcmt bindings");
 }

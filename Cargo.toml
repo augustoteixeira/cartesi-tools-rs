@@ -6,9 +6,11 @@ members = [
   "trolley",
   "libcmt-sys",
 
-  # TODO: put this in rollups-contracts, using forge-bing
+  # TODO: put parts of this in rollups-contracts, using forge bing --alloy
   "types",
 
+  # "examples/echo-test",
+  "examples/echo-dapp",
   "examples/echo-test",
 ]
 
@@ -22,9 +24,10 @@ edition = "2021"
 # testsi-macros = { version = "0.1", path = "testsi-macros" }
 libcmt-sys = { version = "0.1", path = "libcmt-sys" }
 testsi = { version = "0.1", path = "testsi" }
+trolley = { version = "0.1", path = "trolley" }
 types = { version = "0.1", path = "types" }
 
-cartesi-machine = { version = "0.17", git = "https://github.com/cartesi/dave", branch = "feature/improve-bindings"}
+cartesi-machine = { version = "0.18", git = "https://github.com/cartesi/dave", branch = "feature/update-machine"}
 
-alloy-sol-types = "0.6"
-alloy-primitives = "0.6"
+alloy-sol-types = "0.8"
+alloy-primitives = "0.8"

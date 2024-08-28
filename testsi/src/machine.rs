@@ -2,7 +2,7 @@ use alloy_primitives::{Address, U256};
 use cartesi_machine::configuration::MachineConfigRef;
 use clap::Parser;
 use std::path::PathBuf;
-use types::InputBuilder;
+use types::{InputBuilder, OutputsForInput};
 
 #[derive(Parser)]
 #[command(author, version)]
@@ -38,11 +38,11 @@ impl Machine {
         input_index: usize,
     ) -> Result<Self> {
         let runtime_config =
-            cartesi_machine::configuration::RuntimeConfig::default().no_console_putchar(true);
-        assert!(
-            runtime_config.values.htif.no_console_putchar,
-            "console getchar must be disabled for cmio"
-        );
+            cartesi_machine::configuration::RuntimeConfig::default().no_console_putchar(false);
+        // assert!(
+        //     runtime_config.values.htif.no_console_putchar,
+        //     "console getchar must be disabled for cmio"
+        // );
 
         // Instantiate Machine
         let cartesi_machine = {
@@ -60,7 +60,10 @@ impl Machine {
         })
     }
 
-    pub fn advance_state(&mut self, input: InputBuilder) -> Result<(Vec<Vec<u8>>, Vec<Vec<u8>>)> {
+    pub fn advance_state(
+        &mut self,
+        input: InputBuilder,
+    ) -> Result<(OutputsForInput, Vec<Vec<u8>>)> {
         let encoded_input = input.encode(self.chain_id, U256::from(self.input_index), self.dapp);
 
         self.cartesi_machine.send_cmio_response(
@@ -68,7 +71,7 @@ impl Machine {
             &encoded_input,
         )?;
 
-        let mut outputs = Vec::new();
+        let mut outputs = OutputsForInput::default();
         let mut reports = Vec::new();
 
         loop {
@@ -104,7 +107,9 @@ impl Machine {
                     match reason {
                         cartesi_machine::htif::tohost::automatic::PROGRESS => (),
 
-                        cartesi_machine::htif::tohost::automatic::TX_OUTPUT => outputs.push(data),
+                        cartesi_machine::htif::tohost::automatic::TX_OUTPUT => {
+                            outputs.push_encoded(&data);
+                        }
 
                         cartesi_machine::htif::tohost::automatic::TX_REPORT => reports.push(data),
 

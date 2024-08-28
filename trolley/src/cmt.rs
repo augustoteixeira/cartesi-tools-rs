@@ -8,12 +8,11 @@ impl RollupCmt {
     pub fn new() -> Self {
         use std::mem::MaybeUninit;
 
-        let mut r_: MaybeUninit<libcmt_sys::cmt_rollup_t> = MaybeUninit::zeroed();
-        let r = unsafe {
-            let err = libcmt_sys::cmt_rollup_init(r_.as_mut_ptr());
+        let r = {
+            let mut r: MaybeUninit<libcmt_sys::cmt_rollup_t> = MaybeUninit::uninit();
+            let err = unsafe { libcmt_sys::cmt_rollup_init(r.as_mut_ptr()) };
             assert!(err == 0, "failed to instantiate rollup: {}", err);
-
-            r_.assume_init()
+            unsafe { r.assume_init() }
         };
 
         Self { r }
@@ -30,13 +29,16 @@ impl crate::Rollup for RollupCmt {
 
         let mut advance = libcmt_sys::cmt_rollup_advance_t {
             chain_id: 0,
-            app_contract: [0; 20],
-            msg_sender: [0; 20],
+            app_contract: libcmt_sys::cmt_abi_address { data: [0; 20] },
+            msg_sender: libcmt_sys::cmt_abi_address { data: [0; 20] },
             block_number: 0,
             block_timestamp: 0,
             index: 0,
-            payload_length: 0,
-            payload: std::ptr::null_mut(),
+            prev_randao: libcmt_sys::cmt_abi_u256 { data: [0; 32] },
+            payload: libcmt_sys::cmt_abi_bytes {
+                data: std::ptr::null_mut(),
+                length: 0,
+            },
         };
 
         unsafe {
@@ -49,38 +51,41 @@ impl crate::Rollup for RollupCmt {
             assert!(libcmt_sys::cmt_rollup_read_advance_state(&mut self.r, &mut advance) == 0);
         }
 
-        let payload_length = advance.payload_length as usize;
-        let mut payload = Vec::with_capacity(payload_length);
+        let payload_length = advance.payload.length as usize;
+        let mut payload = vec![0; payload_length];
         payload.copy_from_slice(unsafe {
-            std::slice::from_raw_parts(advance.payload as *const u8, payload_length)
+            std::slice::from_raw_parts(advance.payload.data as *const u8, payload_length)
         });
 
         types::Input {
             chainId: U256::from(advance.chain_id),
-            appContract: advance.app_contract.into(),
-            msgSender: advance.msg_sender.into(),
+            appContract: advance.app_contract.data.into(),
+            msgSender: advance.msg_sender.data.into(),
             blockNumber: U256::from(advance.block_number),
             blockTimestamp: U256::from(advance.block_timestamp),
+            prevRandao: U256::from_be_bytes(advance.prev_randao.data),
             index: U256::from(advance.index),
             payload,
         }
     }
 
     fn emit_voucher(&mut self, voucher: &types::Voucher) {
-        let destination = voucher.destination.to_vec();
-        let value = voucher.value.as_le_slice();
+        let destination = voucher.destination;
+        let value = voucher.value.to_be_bytes();
         let mut index = 0;
 
         unsafe {
             assert!(
                 libcmt_sys::cmt_rollup_emit_voucher(
                     &mut self.r,
-                    destination.len() as u32,
-                    destination.as_ptr() as *const std::ffi::c_void,
-                    value.len() as u32,
-                    value.as_ptr() as *const std::ffi::c_void,
-                    voucher.payload.len() as u32,
-                    voucher.payload.as_ptr() as *const std::ffi::c_void,
+                    &libcmt_sys::cmt_abi_address {
+                        data: **destination
+                    },
+                    &libcmt_sys::cmt_abi_u256 { data: value },
+                    &libcmt_sys::cmt_abi_bytes_t {
+                        data: voucher.payload.as_ptr() as *mut std::ffi::c_void,
+                        length: voucher.payload.len(),
+                    },
                     &mut index
                 ) == 0,
                 "failed emitting voucher"
@@ -94,8 +99,10 @@ impl crate::Rollup for RollupCmt {
             assert!(
                 libcmt_sys::cmt_rollup_emit_notice(
                     &mut self.r,
-                    notice.payload.len() as u32,
-                    notice.payload.as_ptr() as *const std::ffi::c_void,
+                    &libcmt_sys::cmt_abi_bytes_t {
+                        data: notice.payload.as_ptr() as *mut std::ffi::c_void,
+                        length: notice.payload.len()
+                    },
                     &mut index
                 ) == 0,
                 "failed emitting notice"
@@ -108,8 +115,10 @@ impl crate::Rollup for RollupCmt {
             assert!(
                 libcmt_sys::cmt_rollup_emit_report(
                     &mut self.r,
-                    report.len() as u32,
-                    report.as_ptr() as *const std::ffi::c_void
+                    &libcmt_sys::cmt_abi_bytes_t {
+                        data: report.as_ptr() as *mut std::ffi::c_void,
+                        length: report.len(),
+                    }
                 ) == 0,
                 "failed emitting report"
             )

@@ -1,11 +1,12 @@
 [package]
 name = "echo-test"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+license.workspace = true
+edition.workspace = true
 
 [dependencies]
 testsi = { workspace = true }
 types = { workspace = true }
 
 alloy-primitives = { workspace = true }
-hex = "0.4.3"
+alloy-sol-types = { workspace = true }

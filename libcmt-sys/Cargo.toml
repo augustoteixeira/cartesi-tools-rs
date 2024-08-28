@@ -1,9 +1,8 @@
 [package]
 name = "libcmt-sys"
-version = "0.1.0"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+version.workspace = true
+license.workspace = true
+edition.workspace = true
 
 [dependencies]
 
@@ -15,6 +14,6 @@ tar = "0.4"
 xz2 = { version = "0.1", features = ["static"] }
 
 bytes = { version = "1.0" }
-hex-literal = "0.4.1"
-reqwest = { version = "0.12", features = ["blocking"] }
+hex-literal = "0.4"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }
 sha2 = "0.10"
