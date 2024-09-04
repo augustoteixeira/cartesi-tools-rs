@@ -47,42 +47,9 @@ fn download_libcmt() {
         .unpack(&out_path)
         .expect("failed to unpack libcmt");
 
-    //     let mut found_lib = false;
-    //     let mut found_headers = false;
-    //     for file in inner_archive.entries().unwrap() {
-    //         let mut f = file.expect("error opening file");
-    //         let path = f.header().path().expect("could not get archive path");
-
-    //         let libcmt_expected_path = "./usr/riscv64-linux-gnu/lib/libcmt.a";
-    //         let header_expected_path = "./usr/riscv64-linux-gnu/include/";
-
-    //         if path.to_str().expect("invalid utf8 string") == libcmt_expected_path {
-    //             f.unpack(out_path.join("libcmt.a"))
-    //                 .expect("could not copy libcmt.a");
-
-    //             found_lib = true;
-    //         } else if path.to_str().expect("invalid utf8 string") == header_expected_path {
-    //             f.unpack(headers_path.clone())
-    //                 .expect("could not copy headers");
-
-    //             found_headers = true;
-    //         }
-    //     }
-
-    //     if !found_lib {
-    //         panic!("could not find libcmt.a");
-    //     }
-    //     if !found_headers {
-    //         panic!("could not find headers");
-    //     }
-
     // compiler flags
     println!("cargo:rustc-link-search={}", lib_path.to_str().unwrap());
     println!("cargo:rustc-link-lib=static=cmt");
-
-    // let libcmt_dir_path = PathBuf::from("./machine-emulator-tools/sys-utils/libcmt/src/")
-    //     .canonicalize()
-    //     .expect("cannot canonicalize path");
 
     let libcmt_bindings = bindgen::Builder::default()
         .header(headers_path.join("rollup.h").to_str().unwrap())

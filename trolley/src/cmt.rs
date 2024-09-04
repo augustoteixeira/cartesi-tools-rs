@@ -21,35 +21,28 @@ impl RollupCmt {
 
 impl crate::Rollup for RollupCmt {
     fn next_input(&mut self) -> types::Input {
+        use std::mem::MaybeUninit;
+
         let mut finish = libcmt_sys::cmt_rollup_finish {
             accept_previous_request: true,
             next_request_type: 0,
             next_request_payload_length: 0,
         };
 
-        let mut advance = libcmt_sys::cmt_rollup_advance_t {
-            chain_id: 0,
-            app_contract: libcmt_sys::cmt_abi_address { data: [0; 20] },
-            msg_sender: libcmt_sys::cmt_abi_address { data: [0; 20] },
-            block_number: 0,
-            block_timestamp: 0,
-            index: 0,
-            prev_randao: libcmt_sys::cmt_abi_u256 { data: [0; 32] },
-            payload: libcmt_sys::cmt_abi_bytes {
-                data: std::ptr::null_mut(),
-                length: 0,
-            },
-        };
-
         unsafe {
             assert!(libcmt_sys::cmt_rollup_finish(&mut self.r, &mut finish) == 0);
         }
 
+        // TODO: add inspect
         assert!(finish.next_request_type == libcmt_sys::HTIF_YIELD_REASON_ADVANCE as i32);
 
-        unsafe {
-            assert!(libcmt_sys::cmt_rollup_read_advance_state(&mut self.r, &mut advance) == 0);
-        }
+        let advance = unsafe {
+            let mut advance: MaybeUninit<libcmt_sys::cmt_rollup_advance_t> = MaybeUninit::uninit();
+            assert!(
+                libcmt_sys::cmt_rollup_read_advance_state(&mut self.r, advance.as_mut_ptr()) == 0
+            );
+            advance.assume_init()
+        };
 
         let payload_length = advance.payload.length as usize;
         let mut payload = vec![0; payload_length];
@@ -65,7 +58,7 @@ impl crate::Rollup for RollupCmt {
             blockTimestamp: U256::from(advance.block_timestamp),
             prevRandao: U256::from_be_bytes(advance.prev_randao.data),
             index: U256::from(advance.index),
-            payload,
+            payload: payload.into(),
         }
     }
 
