@@ -10,6 +10,6 @@ cmt = ["dep:libcmt-sys"]
 
 [dependencies]
 libcmt-sys = { workspace = true, optional = true }
-types = { workspace = true }
-
+#types = { workspace = true }
+cartesi-rollups-contracts = "=2.0.0-rc.16"
 alloy-primitives = { workspace = true }
